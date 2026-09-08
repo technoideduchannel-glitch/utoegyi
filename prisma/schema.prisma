@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("shop")
+  shopId    Int?
+  shop      Shop?    @relation(fields: [shopId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Product {
+  id               Int      @id @default(autoincrement())
+  name             String
+  sku              String   @unique
+  unitPrice        Float
+  costPrice        Float
+  description      String?
+  lowStockThreshold Int     @default(50)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  factoryInventory FactoryInventory?
+  shopInventories  ShopInventory[]
+  transfers        Transfer[]
+  dailySales       DailySale[]
+  damages          DamageLoss[]
+
+  @@map("products")
+}
+
+model Shop {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  inventories    ShopInventory[]
+  transfersSent  Transfer[] @relation("TransferFrom")
+  transfersRecv  Transfer[] @relation("TransferTo")
+  dailySales     DailySale[]
+  damages        DamageLoss[]
+
+  @@map("shops")
+}
+
+model FactoryInventory {
+  id        Int      @id @default(autoincrement())
+  productId Int      @unique
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("factory_inventory")
+}
+
+model ShopInventory {
+  id        Int      @id @default(autoincrement())
+  shopId    Int
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([shopId, productId])
+  @@map("shop_inventory")
+}
+
+model Transfer {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  fromShopId  Int?
+  fromShop    Shop?    @relation("TransferFrom", fields: [fromShopId], references: [id])
+  toShopId    Int
+  toShop      Shop     @relation("TransferTo", fields: [toShopId], references: [id])
+  quantity    Int
+  status      String   @default("pending")
+  createdBy   Int
+  acceptedBy  Int?
+  createdAt   DateTime @default(now())
+  acceptedAt  DateTime?
+
+  @@map("transfers")
+}
+
+model DailySale {
+  id           Int      @id @default(autoincrement())
+  shopId       Int
+  shop         Shop     @relation(fields: [shopId], references: [id])
+  productId    Int
+  product      Product  @relation(fields: [productId], references: [id])
+  date         DateTime @default(now())
+  soldQuantity Int
+  unitPrice    Float
+  totalRevenue Float
+  createdBy    Int
+  createdAt    DateTime @default(now())
+
+  @@unique([shopId, productId, date])
+  @@map("daily_sales")
+}
+
+model DamageLoss {
+  id         Int      @id @default(autoincrement())
+  shopId     Int
+  shop       Shop     @relation(fields: [shopId], references: [id])
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  reason     String
+  reportedBy Int
+  createdAt  DateTime @default(now())
+
+  @@map("damage_losses")
+}
