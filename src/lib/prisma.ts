@@ -10,7 +10,7 @@ function createPrismaClient() {
 
   if (url.startsWith("libsql:")) {
     const adapter = new PrismaLibSQL({
-      url: url,
+      url,
       authToken: process.env.DATABASE_AUTH_TOKEN ?? "",
     });
     return new PrismaClient({ adapter });
